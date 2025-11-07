@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { FaTrash } from 'react-icons/fa'
 
+
+
 const MenuItemManager = () => {
   const [menuItems, setMenuItems] = useState([])
   const [loading, setLoading] = useState(false)
@@ -21,8 +23,46 @@ const MenuItemManager = () => {
 
   const getCategoryName = (categoryId) => {
     if (!categoryId) return 'Unknown'
-    const category = categories.find(cat => cat._id === categoryId)
-    return category ? category.cateName : (categoryId.length > 10 ? 'Loading...' : categoryId)
+    
+    // If categoryId is already a category object, return its cateName
+    if (typeof categoryId === 'object' && categoryId.cateName) {
+      return categoryId.cateName
+    }
+    
+    // Otherwise, find the category by ID
+    const category = categories.find(cat => 
+      cat._id === categoryId || 
+      cat._id.toString() === categoryId.toString()
+    )
+    return category ? category.cateName : 'Unknown'
+  }
+
+  const [categoryNames, setCategoryNames] = useState({})
+
+  const getCategoryNameAsync = async (categoryId) => {
+    if (!categoryId) return 'Unknown'
+    if (categoryNames[categoryId]) return categoryNames[categoryId]
+    
+    const name = await fetchCategoryById(categoryId)
+    setCategoryNames(prev => ({ ...prev, [categoryId]: name }))
+    return name
+  }
+
+  const fetchCategoryById = async (categoryId) => {
+    try {
+      const response = await fetch(`https://regalia-backend.vercel.app/api/categories/get/${categoryId}`)
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Category by ID Response:', data)
+        return data.cateName || 'Unknown'
+      } else {
+        console.error('Category by ID API error:', response.status)
+        return 'Unknown'
+      }
+    } catch (error) {
+      console.error('Category by ID fetch error:', error)
+      return 'Unknown'
+    }
   }
 
   const fetchCategories = async () => {
@@ -30,22 +70,46 @@ const MenuItemManager = () => {
       const response = await fetch('https://regalia-backend.vercel.app/api/categories/all')
       if (response.ok) {
         const data = await response.json()
-        setCategories(Array.isArray(data) ? data : [])
+        console.log('Categories API Response:', data)
+        // Handle different response formats
+        let categoriesData = []
+        if (Array.isArray(data)) {
+          categoriesData = data
+        } else if (data.data && Array.isArray(data.data)) {
+          categoriesData = data.data
+        } else if (data.categories && Array.isArray(data.categories)) {
+          categoriesData = data.categories
+        }
+        setCategories(categoriesData)
       } else {
+        console.error('Categories API error:', response.status)
         setCategories([])
       }
     } catch (error) {
+      console.error('Categories fetch error:', error)
       setCategories([])
     }
   }
 
-  const fetchMenuItemsByFoodType = async (foodType) => {
+  const fetchMenuItemsByFoodType = async (foodType, categoryId = null) => {
     setLoading(true)
     try {
-      const url = foodType === 'All' 
-        ? 'https://regalia-backend.vercel.app/api/menu-items/'
-        : `https://regalia-backend.vercel.app/api/menu-items/foodtype/${foodType}`
+      let url = 'https://regalia-backend.vercel.app/api/menu-items/'
+      const params = new URLSearchParams()
       
+      if (foodType !== 'All') {
+        params.append('foodType', foodType)
+      }
+      
+      if (categoryId) {
+        params.append('category', categoryId)
+      }
+      
+      if (params.toString()) {
+        url += '?' + params.toString()
+      }
+      
+      console.log('Fetching menu items from URL:', url)
       const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
@@ -400,7 +464,13 @@ const MenuItemManager = () => {
                       <>
                         <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.name}</td>
                         <td className="px-6 py-4 text-sm text-blue-600 font-medium">
-                          {item.category && typeof item.category === 'object' ? item.category.cateName : getCategoryName(item.category)}
+                          {(() => {
+                            if (typeof item.category === 'string' && item.category.includes('cateName')) {
+                              const match = item.category.match(/cateName: '([^']+)'/)
+                              return match ? match[1] : 'Unknown'
+                            }
+                            return item.category?.cateName || 'Unknown'
+                          })()}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900">{item.foodType || 'Both'}</td>
                         <td className="px-6 py-4">
