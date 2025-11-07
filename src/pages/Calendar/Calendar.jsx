@@ -53,17 +53,31 @@ function Calendar() {
   const fetchBookings = async () => {
     setLoading(true)
     try {
-      const response = await bookingAPI.getAll()
+      const response = await fetch('https://regalia-backend.vercel.app/api/bookings/')
+      const data = await response.json()
+      
+      let bookingsArray = []
+      
+      // Handle different response structures
+      if (Array.isArray(data)) {
+        bookingsArray = data
+      } else if (data.success && Array.isArray(data.data)) {
+        bookingsArray = data.data
+      } else if (data.data && Array.isArray(data.data)) {
+        bookingsArray = data.data
+      }
+      
       const grouped = {}
-      response.data.forEach((booking) => {
-        if (booking.startDate) {
-          const dateKey = booking.startDate.split('T')[0]
+      bookingsArray.forEach((booking) => {
+        const dateKey = (booking.eventDate || booking.startDate)?.split('T')[0]
+        if (dateKey) {
           if (!grouped[dateKey]) grouped[dateKey] = []
           grouped[dateKey].push(booking)
         }
       })
+      
       setBookings(grouped)
-      console.log('Calendar bookings:', response.data)
+      console.log('Calendar bookings:', bookingsArray)
     } catch (err) {
       console.error('Failed to fetch bookings for calendar:', err)
     } finally {
@@ -137,26 +151,36 @@ function Calendar() {
     const dayBookings = bookings[currentDate] || []
     const bookingCount = dayBookings.length
     
-    // Determine fill position based on booking time
+    // Determine fill position based on booking count and time
     let fillPosition = 'none'
     
-    if (bookingCount === 1) {
+    if (bookingCount >= 2) {
+      // 2 या अधिक bookings = पूरा colored
+      fillPosition = 'full'
+    } else if (bookingCount === 1) {
       const booking = dayBookings[0]
-      const timeValue = booking.startTime || booking.timeSlot || booking.time || booking.slot
+      const timeValue = booking.eventTime || booking.startTime || booking.timeSlot || booking.time || booking.slot
+      
       if (timeValue) {
-        const startHour = parseInt(timeValue.split(':')[0])
-        fillPosition = startHour < 16 ? 'upper' : 'lower'
+        // Time को parse करें
+        let hour = 0
+        if (timeValue.includes(':')) {
+          hour = parseInt(timeValue.split(':')[0])
+        } else if (timeValue.toLowerCase().includes('pm') && !timeValue.toLowerCase().includes('12')) {
+          hour = parseInt(timeValue) + 12
+        } else {
+          hour = parseInt(timeValue)
+        }
+        
+        // 4 PM (16:00) से पहले = first half (upper), बाद में = second half (lower)
+        fillPosition = hour < 16 ? 'upper' : 'lower'
       } else {
+        // अगर time नहीं मिला तो default upper
         fillPosition = 'upper'
       }
-    } else if (bookingCount >= 2) {
-      fillPosition = 'full'
     }
     
     const isSelected = selectedDate === currentDate
-    const highlightClass = isSelected
-      ? "border-4 shadow-lg scale-105 ring-2"
-      : "border border-gray-200"
     
     return (
       <div
@@ -168,22 +192,26 @@ function Calendar() {
         onClick={() => setSelectedDate(currentDate)}
         onMouseEnter={() => setHoveredDate(currentDate)}
         onMouseLeave={() => setHoveredDate(null)}
-        title={bookingCount > 0 ? `${bookingCount} booking${bookingCount > 1 ? 's' : ''}` : ''}
+        title={bookingCount > 0 ? `${bookingCount} booking${bookingCount > 1 ? 's' : ''} - ${fillPosition === 'upper' ? 'First Half' : fillPosition === 'lower' ? 'Second Half' : fillPosition === 'full' ? 'Full Day' : ''}` : ''}
       >
-        {/* Fill based on booking time */}
-        {fillPosition === 'upper' && !isSelected && (
-          <div className="absolute top-0 left-0 right-0 h-1/2 bg-[#c3ad6b]/40 rounded-t-lg"></div>
-        )}
-        {fillPosition === 'lower' && !isSelected && (
-          <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-[#c3ad6b]/40 rounded-b-lg"></div>
-        )}
-        {fillPosition === 'full' && !isSelected && (
-          <div className="absolute inset-0 bg-[#c3ad6b]/40 rounded-lg"></div>
+        {/* Fill based on booking time - only show when not selected */}
+        {!isSelected && (
+          <>
+            {fillPosition === 'upper' && (
+              <div className="absolute top-0 left-0 right-0 h-1/2 bg-[#c3ad6b] opacity-70 rounded-t-lg"></div>
+            )}
+            {fillPosition === 'lower' && (
+              <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-[#c3ad6b] opacity-70 rounded-b-lg"></div>
+            )}
+            {fillPosition === 'full' && (
+              <div className="absolute inset-0 bg-[#c3ad6b] opacity-70 rounded-lg"></div>
+            )}
+          </>
         )}
         
         {/* Day number */}
         <span className={`font-bold text-xs sm:text-sm z-10 ${
-          isSelected ? 'text-white' : 'text-gray-800'
+          isSelected ? 'text-white' : (fillPosition !== 'none' ? 'text-white' : 'text-gray-800')
         }`}>
           {day}
         </span>
