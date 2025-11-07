@@ -111,15 +111,34 @@ const MenuItemManager = () => {
       
       console.log('Fetching menu items from URL:', url)
       const response = await fetch(url)
+      console.log('Response status:', response.status)
+      
       if (response.ok) {
         const data = await response.json()
-        setMenuItems(Array.isArray(data) ? data : [])
-        setMessage(`Loaded ${data.length || 0} ${foodType === 'All' ? '' : foodType} menu items`)
+        console.log('Filter API Response:', data)
+        
+        // Handle different response formats
+        let items = []
+        if (Array.isArray(data)) {
+          items = data
+        } else if (data.data && Array.isArray(data.data)) {
+          items = data.data
+        } else if (data.menuItems && Array.isArray(data.menuItems)) {
+          items = data.menuItems
+        }
+        
+        console.log('Filtered items:', items)
+        setMenuItems(items)
+        setMessage(`Loaded ${items.length || 0} ${foodType === 'All' ? '' : foodType} menu items`)
       } else {
+        console.error('API Error:', response.status)
         setMessage(`Server error: ${response.status}`)
+        setMenuItems([])
       }
     } catch (error) {
+      console.error('Filter Error:', error)
       setMessage(`API unavailable: ${error.message}`)
+      setMenuItems([])
     }
     setLoading(false)
   }
