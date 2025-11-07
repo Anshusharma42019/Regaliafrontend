@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { AiFillFileExcel } from "react-icons/ai";
-import { FiSearch, FiX, FiPlus, FiEdit, FiEye, FiFileText, FiTrash2, FiWifi, FiWifiOff } from "react-icons/fi";
+import { FiSearch, FiX, FiPlus, FiEdit, FiEye, FiFileText, FiTrash2, FiWifi, FiWifiOff, FiMenu } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 
 const debounce = (func, delay) => {
@@ -13,7 +13,7 @@ const debounce = (func, delay) => {
   };
 };
 
-const ListBooking = () => {
+const ListBooking = ({ setSidebarOpen }) => {
   const tableRef = useRef(null);
   const debounceTimeoutRef = useRef(null);
   const [userData, setUserData] = useState([]);
@@ -434,9 +434,18 @@ const ListBooking = () => {
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold" style={{color: 'hsl(45, 100%, 20%)'}}>
-            Booking List
-          </h1>
+          <div className="flex items-center gap-4">
+            {/* Hamburger Menu for Mobile */}
+            <button
+              onClick={() => setSidebarOpen && setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-lg bg-[#c3ad6b] text-white hover:bg-[#b39b5a] transition-colors"
+            >
+              <FiMenu className="w-5 h-5" />
+            </button>
+            <h1 className="text-xl lg:text-2xl font-bold" style={{color: 'hsl(45, 100%, 20%)'}}>
+              Booking List
+            </h1>
+          </div>
           {isMobile && (
             <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#c3ad6b]/10 text-[#c3ad6b] font-semibold text-sm shadow">
               {userRole === "Admin" ? "👑 Admin" : "👤 Staff"}

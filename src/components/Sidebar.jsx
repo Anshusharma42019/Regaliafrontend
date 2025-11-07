@@ -1,10 +1,18 @@
 import React from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { FaCalendarAlt, FaList, FaUtensils, FaCalendarCheck, FaChevronDown, FaChevronRight } from 'react-icons/fa'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { FaCalendarAlt, FaList, FaUtensils, FaCalendarCheck, FaSignOutAlt } from 'react-icons/fa'
 import RegaliaLogo from "../assets/Regalia.png"
 
-const Sidebar = () => {
+const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const location = useLocation()
+  const navigate = useNavigate()
+  
+  const handleLogout = () => {
+    localStorage.removeItem('User')
+    localStorage.removeItem('currentUser')
+    localStorage.removeItem('role')
+    window.location.href = '/'
+  }
 
   const menuItems = [
     {
@@ -30,7 +38,19 @@ const Sidebar = () => {
   ]
 
   return (
-    <div className="w-64 bg-gray-800 text-white min-h-screen">
+    <>
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <div className={`fixed left-0 top-0 w-64 bg-gray-800 text-white min-h-screen z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      }`}>
       {/* Logo Section */}
       <div className="p-6 border-b border-gray-600">
         <div className="flex flex-col items-center">
@@ -49,8 +69,8 @@ const Sidebar = () => {
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 px-4 py-4">
-        <ul className="space-y-2">
+      <nav className="flex-1 px-4 py-4 flex flex-col">
+        <ul className="space-y-2 flex-1">
           {menuItems.map((item, index) => (
             <li key={index}>
               <Link
@@ -67,8 +87,20 @@ const Sidebar = () => {
             </li>
           ))}
         </ul>
+        
+        {/* Logout Button */}
+        <div className="p-4">
+          <button
+            onClick={handleLogout}
+            className="flex items-center w-full px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors duration-200"
+          >
+            <FaSignOutAlt className="w-5 h-5 mr-3 text-[#c3ad6b]" />
+            <span className="font-medium">Logout</span>
+          </button>
+        </div>
       </nav>
-    </div>
+      </div>
+    </>
   )
 }
 

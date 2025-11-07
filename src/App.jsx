@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import ListBooking from './pages/Students/ListBooking'
@@ -16,17 +16,32 @@ import Invoice from './pages/Students/Invoice'
 import LaganCalendar from './pages/Calendar/LaganCalendar'
 import Calendar from './pages/Calendar/Calendar'
 import MenuPlanManager from './components/MenuPlanManager'
+import Login from './pages/Auth/Login'
 import './App.css'
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('currentUser') === 'true')
+  
+  useEffect(() => {
+    const checkAuth = () => {
+      setIsLoggedIn(localStorage.getItem('currentUser') === 'true')
+    }
+    
+    // Check auth on mount and when storage changes
+    checkAuth()
+    window.addEventListener('storage', checkAuth)
+    
+    return () => window.removeEventListener('storage', checkAuth)
+  }, [])
 
   return (
     <Router>
-      <div className="flex min-h-screen bg-gray-100">
-        <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-        <div className="flex-1 lg:ml-0">
-          <Routes>
+      {isLoggedIn ? (
+        <div className="flex min-h-screen bg-gray-100">
+          <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+          <div className="flex-1 lg:ml-64 transition-all duration-300">
+            <Routes>
             <Route path="/" element={<Navigate to="/banquet/list-booking" replace />} />
             <Route path="/dashboard" element={<Dashboard setSidebarOpen={setSidebarOpen} />} />
             <Route path="/easy-dashboard" element={<EasyDashboard setSidebarOpen={setSidebarOpen} />} />
@@ -42,11 +57,18 @@ function App() {
             <Route path="/banquet/menu-view/:id" element={<MenuView setSidebarOpen={setSidebarOpen} />} />
             <Route path="/banquet/invoice/:id" element={<Invoice setSidebarOpen={setSidebarOpen} />} />
             <Route path="/calendar" element={<Calendar setSidebarOpen={setSidebarOpen} />} />
-            <Route path="/menu-plan" element={<MenuPlanManager setSidebarOpen={setSidebarOpen} />} />
-            <Route path="/lagan-calendar" element={<LaganCalendar setSidebarOpen={setSidebarOpen} />} />
+              <Route path="/menu-plan" element={<MenuPlanManager setSidebarOpen={setSidebarOpen} />} />
+              <Route path="/lagan-calendar" element={<LaganCalendar setSidebarOpen={setSidebarOpen} />} />
+            </Routes>
+          </div>
+        </div>
+      ) : (
+        <div className="min-h-screen">
+          <Routes>
+            <Route path="/*" element={<Login />} />
           </Routes>
         </div>
-      </div>
+      )}
     </Router>
   )
 }
