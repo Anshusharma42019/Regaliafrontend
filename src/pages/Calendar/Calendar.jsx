@@ -211,7 +211,7 @@ function Calendar({ setSidebarOpen }) {
         
         {/* Day number */}
         <span className={`font-bold text-xs sm:text-sm z-10 ${
-          isSelected ? 'text-white' : (fillPosition !== 'none' ? 'text-white' : 'text-gray-800')
+          isSelected ? 'text-white' : 'text-gray-800'
         }`}>
           {day}
         </span>
